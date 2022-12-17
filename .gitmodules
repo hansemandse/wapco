@@ -1,0 +1,6 @@
+[submodule "approx"]
+	path = approx
+	url = https://github.com/aproposorg/approx
+[submodule "chiselverify"]
+	path = chiselverify
+	url = https://github.com/hansemandse/chiselverify
