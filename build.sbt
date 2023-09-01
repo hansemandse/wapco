@@ -7,12 +7,12 @@ ThisBuild / organization     := "Tampere University"
 val chiselVersion = "3.5.4"
 
 lazy val approx = RootProject(file("./approx"))
-
 lazy val chiselverify = RootProject(file("./chiselverify"))
+lazy val cmvm = RootProject(file("./cmvm"))
 
 lazy val root = (project in file("."))
   .settings(
-    name := "approx",
+    name := "wapco",
     libraryDependencies ++= Seq(
       "edu.berkeley.cs" %% "chisel3" % chiselVersion,
       "edu.berkeley.cs" %% "chiseltest" % "0.5.4" % "test"
@@ -27,5 +27,6 @@ lazy val root = (project in file("."))
     addCompilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % chiselVersion cross CrossVersion.full),
   ).dependsOn(
     approx,
-    chiselverify
+    chiselverify,
+    cmvm
   )

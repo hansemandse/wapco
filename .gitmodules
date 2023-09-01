@@ -4,3 +4,6 @@
 [submodule "chiselverify"]
 	path = chiselverify
 	url = https://github.com/hansemandse/chiselverify
+[submodule "cmvm"]
+	path = cmvm
+	url = https://github.com/aproposorg/cmvm

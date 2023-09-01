@@ -1,3 +1,5 @@
+package wapco
+
 import chisel3._
 
 import approx.addition.{RCA, CLA, LOA, OFLOCA, GeAr}
@@ -14,7 +16,7 @@ object AdderConfigurations {
 }
 
 // Use this to generate the Verilog descriptions of the characterized adders
-object Wapco extends App {
+object generate extends App {
   import AdderConfigurations._
   val stage = new chisel3.stage.ChiselStage
   val emitArgs  = Array("--target-dir", "build")

@@ -1,5 +1,8 @@
+package wapco
+
 import chisel3._
 import chiseltest._
+import chiseltest.internal.NoThreadingAnnotation
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -38,7 +41,7 @@ class StandaloneWapcoSpec extends WapcoSpec with Matchers {
     // Apply NumTests random inputs and collect the outputs
     (0 until NumTests).foreach { _ =>
       val (a, b, cin) = (BigInt(Width, rng), BigInt(Width, rng), rng.nextBoolean())
-      val sum  = a + b + (if (cin) 1 else 0)
+      val sum  = (a + b + (if (cin) 1 else 0)) & mask
       val cout = sum >> Width
       dut.io.a.poke(a.U)
       dut.io.b.poke(b.U)
@@ -53,17 +56,20 @@ class StandaloneWapcoSpec extends WapcoSpec with Matchers {
 
   // Test LOA
   s"LOA${params2paren(LOAParameters)}" should "generate error metrics" in {
-    test(new LOA(Width, LOAParameters(1)))(generateMetrics(_))
+    test(new LOA(Width, LOAParameters(1)))
+      .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMetrics(_))
   }
 
   // Test OFLOCAV1
   s"OFLOCA${params2paren(OFLOCAParametersV1)}" should "generate error metrics" in {
-    test(new OFLOCA(Width, OFLOCAParametersV1(1), OFLOCAParametersV1(2)))(generateMetrics(_))
+    test(new OFLOCA(Width, OFLOCAParametersV1(1), OFLOCAParametersV1(2)))
+      .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMetrics(_))
   }
 
   // Test OFLOCAV2
   s"OFLOCA${params2paren(OFLOCAParametersV2)}" should "generate error metrics" in {
-    test(new OFLOCA(Width, OFLOCAParametersV2(1), OFLOCAParametersV2(2)))(generateMetrics(_))
+    test(new OFLOCA(Width, OFLOCAParametersV2(1), OFLOCAParametersV2(2)))
+      .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMetrics(_))
   }
 
   // Test GeArV1 - needs redefinition as GeAr doesn't extend Adder
@@ -77,7 +83,8 @@ class StandaloneWapcoSpec extends WapcoSpec with Matchers {
       io.s    := approxAdder.io.s
       io.cout := approxAdder.io.cout
     }
-    test(new GeArV1)(generateMetrics(_))
+    test(new GeArV1)
+      .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMetrics(_))
   }
 
   // Test GeArV2 - needs redefinition as GeAr doesn't extend Adder
@@ -91,7 +98,8 @@ class StandaloneWapcoSpec extends WapcoSpec with Matchers {
       io.s    := approxAdder.io.s
       io.cout := approxAdder.io.cout
     }
-    test(new GeArV2)(generateMetrics(_))
+    test(new GeArV2)
+      .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMetrics(_))
   }
 }
 
@@ -161,7 +169,8 @@ class CombinedWapcoSpec extends WapcoSpec with Matchers {
       io.sA    := approxAdder.io.s
       io.coutA := approxAdder.io.cout
     }
-    test(new LOADUT)(generateMetrics(_))
+    test(new LOADUT)
+      .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMetrics(_))
   }
 
   // Test OFLOCAV1
@@ -174,7 +183,8 @@ class CombinedWapcoSpec extends WapcoSpec with Matchers {
       io.sA    := approxAdder.io.s
       io.coutA := approxAdder.io.cout
     }
-    test(new OFLOCADUT)(generateMetrics(_))
+    test(new OFLOCADUT)
+      .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMetrics(_))
   }
 
   // Test OFLOCAV2
@@ -187,7 +197,8 @@ class CombinedWapcoSpec extends WapcoSpec with Matchers {
       io.sA    := approxAdder.io.s
       io.coutA := approxAdder.io.cout
     }
-    test(new OFLOCADUT)(generateMetrics(_))
+    test(new OFLOCADUT)
+      .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMetrics(_))
   }
 
   // Test GeArV1
@@ -201,7 +212,8 @@ class CombinedWapcoSpec extends WapcoSpec with Matchers {
       io.sA    := approxAdder.io.s
       io.coutA := approxAdder.io.cout
     }
-    test(new GeArDUT)(generateMetrics(_))
+    test(new GeArDUT)
+      .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMetrics(_))
   }
 
   // Test GeArV2
@@ -215,6 +227,7 @@ class CombinedWapcoSpec extends WapcoSpec with Matchers {
       io.sA    := approxAdder.io.s
       io.coutA := approxAdder.io.cout
     }
-    test(new GeArDUT)(generateMetrics(_))
+    test(new GeArDUT)
+      .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMetrics(_))
   }
 }
