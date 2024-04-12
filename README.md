@@ -11,4 +11,12 @@ Source code to reproduce results from our papers on verification of approximate 
   sbt "testOnly norcas.StandaloneNorCASSpec norcas.CMVMNorCASSpec"
   ```
 
-The code has multiple dependencies that must be pulled to compile and run it.
+And my dissertation on coarse-grained reconfigurable computing:
+
+- "*Reconfigurable Approximating Accelerators for Edge Computing*"
+  ```
+  sbt "runMain  dissertation.emixa"
+  sbt "testOnly dissertation.DissertationSpec"
+  ```
+
+The code has multiple dependencies that must be pulled to compile and run it. All dependencies and the present library are developed with Chisel 3.5.4 and require a suitable installation of `sbt`. The library is tested in Ubuntu 20.04 with Verilator 4.028.

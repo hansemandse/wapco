@@ -13,7 +13,7 @@ import approx.multiplication.{
   Multiplier, MultiplierIO, Radix2Multiplier, RecursiveMultiplier
 }
 import approx.multiplication.comptree.{
-  NoApproximation, ColumnTruncation, Miscounting, ORCompression, RowTruncation
+  ColumnTruncation, Miscounting, ORCompression, RowTruncation
 }
 import chiselverify.approximation._
 import chiselverify.approximation.Metrics._
@@ -154,49 +154,49 @@ class StandaloneNorCASSpec extends NorCASSpec with Matchers {
 
   // Test Radix2Multiplier with RowTruncation(2)
   s"Radix2Multiplier$rtr1" should "generate error metrics" in {
-    test(new Radix2Multiplier(Width, approx=rtr1._2))
+    test(new Radix2Multiplier(Width, Width, comp=true, approx=rtr1._2))
       .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMultMetrics(_))
   }
 
   // Test Radix2Multiplier with RowTruncation(4)
   s"Radix2Multiplier$rtr2" should "generate error metrics" in {
-    test(new Radix2Multiplier(Width, approx=rtr2._2))
+    test(new Radix2Multiplier(Width, Width, comp=true, approx=rtr2._2))
       .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMultMetrics(_))
   }
 
   // Test Radix2Multiplier with ColumnTruncation(16)
   s"Radix2Multiplier$ctr1" should "generate error metrics" in {
-    test(new Radix2Multiplier(Width, approx=ctr1._2))
+    test(new Radix2Multiplier(Width, Width, comp=true, approx=ctr1._2))
       .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMultMetrics(_))
   }
 
   // Test Radix2Multiplier with ColumnTruncation(32)
   s"Radix2Multiplier$ctr2" should "generate error metrics" in {
-    test(new Radix2Multiplier(Width, approx=ctr2._2))
+    test(new Radix2Multiplier(Width, Width, comp=true, approx=ctr2._2))
       .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMultMetrics(_))
   }
 
   // Test Radix2Multiplier with ORCompression(16)
   s"Radix2Multiplier$cmp1" should "generate error metrics" in {
-    test(new Radix2Multiplier(Width, approx=cmp1._2))
+    test(new Radix2Multiplier(Width, Width, comp=true, approx=cmp1._2))
       .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMultMetrics(_))
   }
 
   // Test Radix2Multiplier with ORCompression(32)
   s"Radix2Multiplier$cmp2" should "generate error metrics" in {
-    test(new Radix2Multiplier(Width, approx=cmp2._2))
+    test(new Radix2Multiplier(Width, Width, comp=true, approx=cmp2._2))
       .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMultMetrics(_))
   }
 
   // Test Radix2Multiplier with Miscounting(16)
   s"Radix2Multiplier$msc1" should "generate error metrics" in {
-    test(new Radix2Multiplier(Width, approx=msc1._2))
+    test(new Radix2Multiplier(Width, Width, comp=true, approx=msc1._2))
       .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMultMetrics(_))
   }
 
   // Test Radix2Multiplier with Miscounting(32)
   s"Radix2Multiplier$msc2" should "generate error metrics" in {
-    test(new Radix2Multiplier(Width, approx=msc2._2))
+    test(new Radix2Multiplier(Width, Width, comp=true, approx=msc2._2))
       .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMultMetrics(_))
   }
 
@@ -401,7 +401,7 @@ class CombinedNorCASSpec extends NorCASSpec with Matchers {
 
   // Generic exact multiplier
   class ExactMultiplier(width: Int) extends Module {
-    val io = IO(new MultiplierIO(width))
+    val io = IO(new MultiplierIO(width, width))
     io.p := io.a * io.b
   }
 
@@ -425,7 +425,7 @@ class CombinedNorCASSpec extends NorCASSpec with Matchers {
   // Test Radix2Multiplier with RowTruncation(2)
   s"Radix2Multiplier$rtr1" should "generate error metrics" in {
     class R2MultDUT extends MultiplierDUT(Width) {
-      val approxMult = Module(new Radix2Multiplier(Width, approx=rtr1._2))
+      val approxMult = Module(new Radix2Multiplier(Width, Width, comp=true, approx=rtr1._2))
       approxMult.io.a := io.a
       approxMult.io.b := io.b
       io.pA := approxMult.io.p
@@ -437,7 +437,7 @@ class CombinedNorCASSpec extends NorCASSpec with Matchers {
   // Test Radix2Multiplier with RowTruncation(4)
   s"Radix2Multiplier$rtr2" should "generate error metrics" in {
     class R2MultDUT extends MultiplierDUT(Width) {
-      val approxMult = Module(new Radix2Multiplier(Width, approx=rtr2._2))
+      val approxMult = Module(new Radix2Multiplier(Width, Width, comp=true, approx=rtr2._2))
       approxMult.io.a := io.a
       approxMult.io.b := io.b
       io.pA := approxMult.io.p
@@ -449,7 +449,7 @@ class CombinedNorCASSpec extends NorCASSpec with Matchers {
   // Test Radix2Multiplier with ColumnTruncation(16)
   s"Radix2Multiplier$ctr1" should "generate error metrics" in {
     class R2MultDUT extends MultiplierDUT(Width) {
-      val approxMult = Module(new Radix2Multiplier(Width, approx=ctr1._2))
+      val approxMult = Module(new Radix2Multiplier(Width, Width, comp=true, approx=ctr1._2))
       approxMult.io.a := io.a
       approxMult.io.b := io.b
       io.pA := approxMult.io.p
@@ -461,7 +461,7 @@ class CombinedNorCASSpec extends NorCASSpec with Matchers {
   // Test Radix2Multiplier with ColumnTruncation(32)
   s"Radix2Multiplier$ctr2" should "generate error metrics" in {
     class R2MultDUT extends MultiplierDUT(Width) {
-      val approxMult = Module(new Radix2Multiplier(Width, approx=ctr2._2))
+      val approxMult = Module(new Radix2Multiplier(Width, Width, comp=true, approx=ctr2._2))
       approxMult.io.a := io.a
       approxMult.io.b := io.b
       io.pA := approxMult.io.p
@@ -473,7 +473,7 @@ class CombinedNorCASSpec extends NorCASSpec with Matchers {
   // Test Radix2Multiplier with ORCompression(16)
   s"Radix2Multiplier$cmp1" should "generate error metrics" in {
     class R2MultDUT extends MultiplierDUT(Width) {
-      val approxMult = Module(new Radix2Multiplier(Width, approx=cmp1._2))
+      val approxMult = Module(new Radix2Multiplier(Width, Width, comp=true, approx=cmp1._2))
       approxMult.io.a := io.a
       approxMult.io.b := io.b
       io.pA := approxMult.io.p
@@ -485,7 +485,7 @@ class CombinedNorCASSpec extends NorCASSpec with Matchers {
   // Test Radix2Multiplier with ORCompression(32)
   s"Radix2Multiplier$cmp2" should "generate error metrics" in {
     class R2MultDUT extends MultiplierDUT(Width) {
-      val approxMult = Module(new Radix2Multiplier(Width, approx=cmp2._2))
+      val approxMult = Module(new Radix2Multiplier(Width, Width, comp=true, approx=cmp2._2))
       approxMult.io.a := io.a
       approxMult.io.b := io.b
       io.pA := approxMult.io.p
@@ -497,7 +497,7 @@ class CombinedNorCASSpec extends NorCASSpec with Matchers {
   // Test Radix2Multiplier with Miscounting(16)
   s"Radix2Multiplier$msc1" should "generate error metrics" in {
     class R2MultDUT extends MultiplierDUT(Width) {
-      val approxMult = Module(new Radix2Multiplier(Width, approx=msc1._2))
+      val approxMult = Module(new Radix2Multiplier(Width, Width, comp=true, approx=msc1._2))
       approxMult.io.a := io.a
       approxMult.io.b := io.b
       io.pA := approxMult.io.p
@@ -509,7 +509,7 @@ class CombinedNorCASSpec extends NorCASSpec with Matchers {
   // Test Radix2Multiplier with Miscounting(32)
   s"Radix2Multiplier$msc2" should "generate error metrics" in {
     class R2MultDUT extends MultiplierDUT(Width) {
-      val approxMult = Module(new Radix2Multiplier(Width, approx=msc2._2))
+      val approxMult = Module(new Radix2Multiplier(Width, Width, comp=true, approx=msc2._2))
       approxMult.io.a := io.a
       approxMult.io.b := io.b
       io.pA := approxMult.io.p

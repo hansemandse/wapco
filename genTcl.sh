@@ -2,20 +2,33 @@
 # Generates a Tcl script for creating a new Vivado project and adding the 
 # exported adder designs as source files to it, disabling all but RCA_32.v
 FILE=build.tcl
-JOBS=$(nproc)
 
-echo "set path\n" > $FILE
+echo "set path [pwd]\n" > $FILE
 echo "# Create Vivado project
-create_project Wapco \${path}build/Wapco -part xc7a35tcpg236-1
-set_property board_part digilentinc.com:basys3:part0:1.1 [current_project]" >> $FILE
-echo "\n# Load source files" >> $FILE
+create_project -force Wapco \${path}/build/Wapco -part xc7a35tcpg236-1
+
+set fp [open \${path}/build/LUTs.csv w]
+fconfigure \$fp -buffering none
+puts \$fp \"Name,LUTs\"
+
+# Run synthesis and implementation for all the considered designs" >> $FILE
+
 for f in "build"/*.v; do
-    echo "add_files -norecurse \${path}$f" >> $FILE
-    if [ "$f" = "build/RCA_32.v" ]; then
-        continue;
-    fi
-    echo "set_property is_enabled false [get_files \${path}$f]" >> $FILE
+    echo "remove_files [get_files]
+add_files -norecurse \${path}/$f
+puts -nonewline \$fp [lindex [split [lindex [split $f \"/\"] 1] \".\"] 0]
+reset_run synth_1
+launch_runs synth_1
+wait_on_runs synth_1
+open_run synth_1
+set lines [split [report_utilization -return_string] \"\\\n\"]
+close_design
+foreach line \$lines {
+    if {[string first \"LUTs\" \$line] != -1} {
+        set count [string trim [lindex [split \$line \"|\"] 2]]
+        puts \$fp \",\$count\"
+        break
+    }
+}\n" >> $FILE
 done
-echo "\n# Launch synthesis
-launch_runs -jobs $JOBS synth_1
-wait_on_run synth_1" >> $FILE
+echo "close \$fp" >> $FILE

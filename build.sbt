@@ -6,7 +6,7 @@ ThisBuild / organization     := "Tampere University"
 
 val chiselVersion = "3.5.4"
 
-lazy val approx = RootProject(file("./approx"))
+lazy val approx = RootProject(file("./emixa/approx"))
 lazy val chiselverify = RootProject(file("./chiselverify"))
 lazy val cmvm = RootProject(file("./cmvm"))
 
