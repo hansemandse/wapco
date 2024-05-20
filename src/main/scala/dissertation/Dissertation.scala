@@ -3,9 +3,12 @@ package dissertation
 import chisel3._
 
 import approx.addition.{
-  Adder, FullAdder, AXA3, TCAA, SESA1, RCA, CLA, CSA, SklanskyPPA, LOA, OFLOCA, GeAr, SklanskyAxPPA
+  Adder, FullAdder, AXA3, TCAA, SESA1, RCA, CLA, CSA, SklanskyPPA,
+  LOA, OFLOCA, GeAr, SklanskyAxPPA, AdaptiveOFLOCA
 }
-import approx.multiplication.{Radix2Multiplier, Radix4Multiplier, RecursiveMultiplier}
+import approx.multiplication.{
+  Radix2Multiplier, Radix4Multiplier, RecursiveMultiplier, AdaptiveRadix2Multiplier
+}
 import approx.multiplication.comptree.{
   ColumnTruncation, Miscounting, ORCompression, RowTruncation
 }
@@ -61,6 +64,7 @@ object AdderConfigurations {
   val gear1   = (32, 6, 2)
   val gear2   = (32, 8, 8)
   val axppa   = (32, 12)
+  val aofloca = (32, 16, 3)
 }
 
 // Contains configurations of the multipliers used
@@ -73,14 +77,16 @@ object MultConfigurations {
   val msc1 = (32, Seq(Miscounting(16)))
   val cmp1 = (32, Seq(ORCompression(16)))
   val kul  = (32, 16)
+  val ar2m = (32, 16, 3)
 }
 
 // Use this to generate the Verilog descriptions of the characterized adders and multipliers
 object generate extends App {
   import AdderConfigurations._
   import MultConfigurations._
-  val stage = new chisel3.stage.ChiselStage
-  val emitArgs = Array("--target-dir", "build")
+
+  final val stage = new chisel3.stage.ChiselStage
+  final val emitArgs = Array("--target-dir", "build")
 
   def moveAdder(file: String, args: Int*): Unit = java.nio.file.Files.move(
     new java.io.File(s"./build/$file.v").toPath(),
@@ -90,7 +96,7 @@ object generate extends App {
 
   def moveMult(file: String, approx: String, args: Int*): Unit = java.nio.file.Files.move(
     new java.io.File(s"./build/$file.v").toPath(),
-    new java.io.File(s"./build/${file}_${approx}${args.map(a => s"_$a").mkString("")}.v").toPath(),
+    new java.io.File(s"./build/${file}${if (approx.isEmpty) "" else "_"}$approx${args.map(a => s"_$a").mkString("")}.v").toPath(),
     java.nio.file.StandardCopyOption.REPLACE_EXISTING
   )
 
@@ -122,6 +128,8 @@ object generate extends App {
   moveAdder("GeAr", gear2._1, gear2._2, gear2._3)
   stage.emitVerilog(new SklanskyAxPPA(axppa._1, axppa._2), emitArgs)
   moveAdder("SklanskyAxPPA", axppa._1, axppa._2)
+  stage.emitVerilog(new AdaptiveOFLOCA(aofloca._1, aofloca._2, aofloca._3), emitArgs)
+  moveAdder("AdaptiveOFLOCA", aofloca._1, aofloca._2, aofloca._3)
 
   // Exact multipliers
   stage.emitVerilog(new Radix2Multiplier(r2m, r2m, comp=true), emitArgs)
@@ -149,23 +157,72 @@ object generate extends App {
   moveMult("Radix4Multiplier", s"ORCompression${cmp1._2.head.width}", cmp1._1)
   stage.emitVerilog(new RecursiveMultiplier(kul._1, kul._2), emitArgs)
   moveMult("RecursiveMultiplier", "Kulkarni", kul._1)
+  stage.emitVerilog(new AdaptiveRadix2Multiplier(ar2m._1, ar2m._1, ar2m._2, comp=true, numModes=ar2m._3), emitArgs)
+  moveMult("AdaptiveRadix2Multiplier", "", ar2m._1)
 }
 
 // Use this run emixa on a subset of the designs
 object emixa extends App {
   import AdderConfigurations._
   import MultConfigurations._
+
+  import java.io.{File, FileInputStream, FileOutputStream}
+
   import sys.process._
 
-  def runEmixa(name: String, args: Int*): Int = s"python3 ./emixa/emixa.py -p dissertation.$name ${args.mkString(" ")}".!
+  final val outDir  = "./emixa/output"
+  final val plotDir = "./plots"
+
+  def evalAndCopy(code: Int, name: String, args: Int*): Unit = {
+    if (code == 0) {
+      println(s"Successfully executed emixa test $name. Moving plots to $plotDir/$name")
+      (new File(s"$plotDir/$name")).mkdirs()
+      (new File(s"$outDir/$name")).listFiles()
+        .filter(_.getName().endsWith(".pdf"))
+        .foreach { inFile =>
+          val ofName    = {
+            val ifName = inFile.getName().split('.').dropRight(1).mkString(".")
+            val argExt = args.map(arg => s"_$arg").mkString("")
+            s"$ifName$argExt"
+          }
+          val outFile = new File(s"$plotDir/$name/${ofName}.pdf")
+          val isChannel = new FileInputStream (inFile) .getChannel()
+          val osChannel = new FileOutputStream(outFile).getChannel()
+          osChannel.transferFrom(isChannel, 0, Long.MaxValue)
+          inFile.delete()
+        }
+    } else {
+      println(s"Failed to execute emixa test $name with arguments ${args.mkString(" ")}")
+    }
+  }
+
+  def runEmixa(name: String, args: Int*): Unit = {
+    val code = s"python3 ./emixa/emixa.py -p dissertation.$name ${args.mkString(" ")}".!
+    evalAndCopy(code, name, args:_*)
+  }
+
+  def runEmixaStack(name: String, args: String*): Unit = {
+    val code = s"python3 ./emixa/emixa.py -p -stack dissertation.$name ${args.mkString(" ")}".!
+    evalAndCopy(code, name)
+  }
 
   // Approximate adders
   runEmixa("LSESA1Spec", laxa3._1, laxa3._2)
   runEmixa("OFLOCASpec", ofloca1._1, ofloca1._2, ofloca1._3)
   runEmixa("GeArSpec", gear2._1, gear2._2, gear2._3)
   runEmixa("SklanskyAxPPASpec", axppa._1, axppa._2)
+  (1 to aofloca._3).foreach { mode =>
+    runEmixa("AdaptiveOFLOCASpec", aofloca._1, aofloca._2, aofloca._3, mode)
+  }
 
   // Approximate multipliers
   runEmixa("R2MORCompSpec", cmp1._1, cmp1._1, cmp1._2.head.width)
   runEmixa("R4MORCompSpec", cmp1._1, cmp1._1, cmp1._2.head.width)
+  (1 to ar2m._3).foreach { mode =>
+    runEmixa("AdaptiveR2MSpec", ar2m._1, ar2m._1, ar2m._2, ar2m._3, mode)
+  }
+
+  // Stacked plots for the adaptive units
+  runEmixaStack("AdaptiveOFLOCASpec", aofloca._1.toString(), aofloca._2.toString(), aofloca._3.toString(), s"1:${aofloca._3}")
+  runEmixaStack("AdaptiveR2MSpec", ar2m._1.toString(), ar2m._1.toString(), ar2m._2.toString(), ar2m._3.toString(), s"1:${ar2m._3}")
 }

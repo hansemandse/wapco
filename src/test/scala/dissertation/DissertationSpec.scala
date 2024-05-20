@@ -7,10 +7,12 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import approx.addition.{
-  Adder, FullAdder, AXA3, TCAA, SESA1, RCA, CLA, CSA, SklanskyPPA, LOA, OFLOCA, GeAr, SklanskyAxPPA
+  Adder, FullAdder, AXA3, TCAA, SESA1, RCA, CLA, CSA, SklanskyPPA,
+  LOA, OFLOCA, GeAr, SklanskyAxPPA, AdaptiveOFLOCA
 }
 import approx.multiplication.{
-  Multiplier, MultiplierIO, Radix2Multiplier, Radix4Multiplier, RecursiveMultiplier
+  Multiplier, MultiplierIO, Radix2Multiplier, Radix4Multiplier,
+  RecursiveMultiplier, AdaptiveRadix2Multiplier
 }
 import approx.multiplication.comptree.{
   ColumnTruncation, Miscounting, ORCompression, RowTruncation
@@ -27,9 +29,20 @@ class DissertationSpec extends AnyFlatSpec with ChiselScalatestTester with Match
   val Metrics  = Seq(ER(), MED(), MRED())
 
   private val widths = Seq(rca, csa._1, cla._1, ppa, loa._1, laxa1._1, laxa2._1,
-    laxa3._1, ofloca1._1, ofloca2._1, gear1._1, gear2._1, axppa._1, r2m, r4m, rec,
-    ctr1._1, rtr1._1, msc1._1, cmp1._1, kul._1)
+    laxa3._1, ofloca1._1, ofloca2._1, gear1._1, gear2._1, axppa._1, aofloca._1,
+    r2m, r4m, rec, ctr1._1, rtr1._1, msc1._1, cmp1._1, kul._1, ar2m._1)
   require(widths.forall(_ == Width))
+
+  // Insert the name of a DUT into its error report
+  def insertModName[T <: Module](srcRprt: String, dut: T): String = {
+    val modName  = dut.getClass().getSimpleName()
+    val srcLines = srcRprt.split('\n')
+    val hdr      = s" Error report ($modName) "
+    val padLen   = srcLines.map(_.size).max - hdr.size
+    val hdrLine  = "=" * (padLen / 2) ++ hdr ++ "=" * (padLen / 2 + (if ((padLen & 0x1) == 1) 1 else 0))
+    srcLines(0)  = hdrLine
+    srcLines.mkString("\n")
+  }
 
   // Generate some random inputs to the adder and sample its registered outputs
   def generateAdderMetrics[T <: Adder](dut: T): Unit = {
@@ -54,7 +67,7 @@ class DissertationSpec extends AnyFlatSpec with ChiselScalatestTester with Match
     }
 
     // Generate an error report and print it
-    println(er.report())
+    println(insertModName(er.report(), dut))
   }
 
   // Test LOA
@@ -125,8 +138,25 @@ class DissertationSpec extends AnyFlatSpec with ChiselScalatestTester with Match
 
   // Test SklanskyAxPPA
   s"SklanskyAxPPA$axppa" should "generate error metrics" in {
-    test(new SklanskyAxPPA(axppa._1, axppa._2))
+    test(new SklanskyAxPPA(Width, axppa._2))
       .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateAdderMetrics(_))
+  }
+
+  // Test AdaptiveOFLOCA with three approximate modes (four modes total)
+  s"AdaptiveOFLOCA$aofloca" should "generate error metrics" in {
+    (1 to aofloca._3).foreach { mode =>
+      class Wrapper extends Adder(Width) {
+        val adder = Module(new AdaptiveOFLOCA(Width, aofloca._2, aofloca._3))
+        adder.io.ctrl := mode.U
+        adder.io.a    := io.a
+        adder.io.b    := io.b
+        adder.io.cin  := io.cin
+        io.s    := adder.io.s
+        io.cout := adder.io.cout
+      }
+      test(new Wrapper)
+        .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateAdderMetrics(_))
+    }
   }
 
   // Generate some random inputs to the multiplier and sample its registered outputs
@@ -149,7 +179,7 @@ class DissertationSpec extends AnyFlatSpec with ChiselScalatestTester with Match
     }
 
     // Generate an error report and print it
-    println(er.report())
+    println(insertModName(er.report(), dut))
   }
 
   // Test Radix2Multiplier with RowTruncation(2)
@@ -204,5 +234,19 @@ class DissertationSpec extends AnyFlatSpec with ChiselScalatestTester with Match
   s"RecursiveMultiplier$kul" should "generate error metrics" in {
     test(new RecursiveMultiplier(Width, kul._2))
       .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMultMetrics(_))
+  }
+
+  s"AdaptiveRadix2Multiplier$ar2m" should "generate error metrics" in {
+    (1 to ar2m._3).foreach { mode =>
+      class Wrapper extends Multiplier(Width, Width) {
+        val mult = Module(new AdaptiveRadix2Multiplier(Width, Width, ar2m._2, numModes=ar2m._3))
+        mult.io.ctrl := mode.U
+        mult.io.a    := io.a
+        mult.io.b    := io.b
+        io.p := mult.io.p
+      }
+      test(new Wrapper)
+        .withAnnotations(Seq(VerilatorBackendAnnotation, NoThreadingAnnotation))(generateMultMetrics(_))
+    }
   }
 }

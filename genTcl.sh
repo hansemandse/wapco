@@ -5,7 +5,8 @@ FILE=build.tcl
 
 echo "set path [pwd]\n" > $FILE
 echo "# Create Vivado project
-create_project -force Wapco \${path}/build/Wapco -part xc7a35tcpg236-1
+create_project -force Wapco \${path}/build/Wapco
+set_property board_part xilinx.com:k26c:part0:1.4 [current_project]
 
 set fp [open \${path}/build/LUTs.csv w]
 fconfigure \$fp -buffering none
@@ -18,9 +19,9 @@ for f in "build"/*.v; do
 add_files -norecurse \${path}/$f
 puts -nonewline \$fp [lindex [split [lindex [split $f \"/\"] 1] \".\"] 0]
 reset_run synth_1
-launch_runs synth_1
-wait_on_runs synth_1
-open_run synth_1
+launch_runs impl_1
+wait_on_runs impl_1
+open_run impl_1
 set lines [split [report_utilization -return_string] \"\\\n\"]
 close_design
 foreach line \$lines {
